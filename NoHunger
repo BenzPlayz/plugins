@@ -1,0 +1,47 @@
+package me.benzplayz;
+
+import java.util.List;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class NoHunger
+  extends JavaPlugin
+  implements Listener
+{
+  List<String> worlds = getConfig().getStringList("worlds");
+  
+  public void onEnable()
+  {
+    Bukkit.getPluginManager().registerEvents(this, this);
+    saveDefaultConfig();
+  }
+  
+  @EventHandler
+  public void foodLevelChange(FoodLevelChangeEvent e)
+  {
+    if ((e.getEntity() instanceof Player))
+    {
+      Player p = (Player)e.getEntity();
+      if (p.hasPermission("zerohunger.use")) {
+        for (String w : this.worlds)
+        {
+          World world = Bukkit.getWorld(w);
+          if (p.getWorld().equals(world))
+          {
+            e.setCancelled(true);
+            if (p.getFoodLevel() < 19.0D) {
+              p.setFoodLevel(20);
+            }
+          }
+        }
+      }
+    }
+  }
+}
