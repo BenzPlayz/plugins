@@ -1,0 +1,36 @@
+package me.benzplayz;
+
+import java.io.PrintStream;
+import lilypad.client.connect.api.Connect;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.ServicesManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class main
+  extends JavaPlugin
+{
+  public Send s = new Send(this);
+  public LilySendCommand lsc = new LilySendCommand(this);
+  Connect connect;
+  public int timer = 0;
+  
+  public void onEnable()
+  {
+    saveDefaultConfig();
+    this.connect = ((Connect)Bukkit.getServer().getServicesManager().getRegistration(Connect.class).getProvider());
+    registercommands();
+    
+    this.timer = getConfig().getInt("TeleportTimer");
+  }
+  
+  public void registercommands()
+  {
+    getCommand("server").setExecutor(new ServerCommand(this));
+    getCommand("lilysend").setExecutor(new LilySendCommand(this));
+    System.out.print("[SendMe] Commands Registered!");
+  }
+}
