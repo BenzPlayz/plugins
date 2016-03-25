@@ -1,0 +1,195 @@
+package me.benzplayz;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.FileConfigurationOptions;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class StaffChat
+  extends JavaPlugin
+  implements Listener
+{
+  public static Map<String, Integer> toggle = new HashMap();
+  
+  public void onEnable()
+  {
+    getConfig().options().copyDefaults(true);
+    saveConfig();
+    
+    Bukkit.getServer().getPluginManager().registerEvents(this, this);
+  }
+  
+  public void onDisable() {}
+  
+  @EventHandler
+  public void onJoin(PlayerJoinEvent event)
+  {
+    Player p = event.getPlayer();
+    String uuid = p.getUniqueId().toString();
+    toggle.put(uuid, Integer.valueOf(0));
+  }
+  
+  @EventHandler
+  public void onChat(AsyncPlayerChatEvent event)
+  {
+    String msg = event.getMessage();
+    Player p = event.getPlayer();
+    String uuid = p.getUniqueId().toString();
+    if (getConfig().getStringList("staff").contains(p.getName())) {
+      for (String staff : getConfig().getStringList("staff"))
+      {
+        Player send = Bukkit.getServer().getPlayer(staff);
+        if ((send != null) && 
+          (send.isOnline()) && 
+          (uuid != null)) {
+          if (toggle.get(uuid) != null)
+          {
+            if (((Integer)toggle.get(uuid)).intValue() == 1) {
+              if (p.hasPermission("staffchat.toggle"))
+              {
+                event.setCancelled(true);
+                send.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("format").replaceAll("%player%", p.getName()).replaceAll("%msg%", msg)));
+              }
+              else
+              {
+                toggle.put(uuid, Integer.valueOf(0));
+              }
+            }
+          }
+          else {
+            return;
+          }
+        }
+      }
+    }
+  }
+  
+  public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
+  {
+    if ((sender instanceof Player))
+    {
+      Player p = (Player)sender;
+      String uuid = p.getUniqueId().toString();
+      if ((label.equalsIgnoreCase("sc")) || (label.equalsIgnoreCase("staffchat"))) {
+        if (p.hasPermission("staffchat.toggle"))
+        {
+          if (args.length == 0)
+          {
+            if (toggle.get(uuid) != null)
+            {
+              if (((Integer)toggle.get(uuid)).intValue() == 0)
+              {
+                p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "StaffChat " + ChatColor.GREEN + ChatColor.BOLD.toString() + "ENABLED");
+                toggle.put(uuid, Integer.valueOf(1));
+              }
+              else
+              {
+                toggle.put(uuid, Integer.valueOf(0));
+                p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "StaffChat " + ChatColor.RED + ChatColor.BOLD.toString() + "DISABLED");
+              }
+            }
+            else
+            {
+              toggle.put(uuid, Integer.valueOf(0));
+              if (((Integer)toggle.get(uuid)).intValue() == 0)
+              {
+                p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "StaffChat " + ChatColor.GREEN + ChatColor.BOLD.toString() + "ENABLED");
+                toggle.put(uuid, Integer.valueOf(1));
+              }
+              else
+              {
+                toggle.put(uuid, Integer.valueOf(0));
+              }
+            }
+          }
+          else
+          {
+            if (args.length == 1)
+            {
+              if (!args[0].equalsIgnoreCase("reload"))
+              {
+                p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "Usage: /staffchat (add/remove/reload) [player]");
+                return true;
+              }
+              if (p.hasPermission("staffchat.reload"))
+              {
+                getConfig().options().copyDefaults(false);
+                reloadConfig();
+                p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "Configuration successfully reloaded!");
+                return true;
+              }
+              p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("no-permission")));
+              return true;
+            }
+            if (args.length == 2)
+            {
+              if (args[0].equalsIgnoreCase("add"))
+              {
+                if (p.hasPermission("staffchat.add"))
+                {
+                  List<String> staff = getConfig().getStringList("staff");
+                  if (!staff.contains(args[1]))
+                  {
+                    staff.add(args[1]);
+                    getConfig().set("staff", staff);
+                    saveConfig();
+                    p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "Player successfully added to the Staff-List!");
+                    return true;
+                  }
+                  p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "That player is already in the Staff-List!");
+                  return true;
+                }
+                p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("no-permission")));
+                return true;
+              }
+              if (args[0].equalsIgnoreCase("remove"))
+              {
+                if (p.hasPermission("staffchat.remove"))
+                {
+                  List<String> staff2 = getConfig().getStringList("staff");
+                  if (staff2.contains(args[1]))
+                  {
+                    staff2.remove(args[1]);
+                    getConfig().set("staff", staff2);
+                    saveConfig();
+                    p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "Player successfully removed from the Staff-List!");
+                    return true;
+                  }
+                  p.sendMessage(ChatColor.YELLOW + ChatColor.BOLD.toString() + "StaffChat" + ChatColor.GRAY + " >>> " + "That player is not in the Staff-List!");
+                  return true;
+                }
+                p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("no-permission")));
+                return true;
+              }
+            }
+            else
+            {
+              p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("no-permission")));
+              return true;
+            }
+          }
+        }
+        else
+        {
+          p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("no-permission")));
+          return true;
+        }
+      }
+    }
+    return true;
+  }
+}
